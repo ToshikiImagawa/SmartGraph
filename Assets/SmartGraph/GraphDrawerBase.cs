@@ -13,7 +13,7 @@ namespace SmartGraph
         [SerializeField] private Vector2[] _points = Enumerable.Empty<Vector2>().ToArray();
         [SerializeField] private float _maxY = 100f;
         [SerializeField] private float _maxX = 100f;
-        [SerializeField] private Vector2 _startPosition = Vector2.zero;
+        [SerializeField] private Vector2 _startPosition;
 
         private Vector2[] _viewPointPositions = Enumerable.Empty<Vector2>().ToArray();
         private Vector2[] _filterPointPositions = Enumerable.Empty<Vector2>().ToArray();

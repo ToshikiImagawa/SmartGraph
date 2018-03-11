@@ -86,6 +86,20 @@ namespace SmartGraph
                     var normal2 = CalcNormal(point1, point2, point3);
                     var normal1 = CalcNormal(point0, point1, point2);
 
+                    var innerProduct1 = Vector2.Dot(defaultCalcNormal, normal1);
+                    var innerProduct2 = Vector2.Dot(defaultCalcNormal, normal2);
+
+                    var upPosition1 = defaultNormal - (normal1 + defaultCalcNormal).normalized;
+                    var downPosition1 = defaultNormal + (normal1 + defaultCalcNormal).normalized;
+                    var upPosition2 = defaultNormal - (normal2 + defaultCalcNormal).normalized;
+                    var downPosition2 = defaultNormal + (normal2 + defaultCalcNormal).normalized;
+
+                    var isUp1 = upPosition1.magnitude >= downPosition1.magnitude;
+                    var isUp2 = upPosition2.magnitude >= downPosition2.magnitude;
+                    
+                    var width1 = width / innerProduct1;
+                    var width2 = width / innerProduct2;
+
                     if (!point0.HasValue)
                     {
                         AddCap(point1, point2, defaultNormal, defaultCalcNormal, width, false, cap, vertex,
@@ -93,7 +107,10 @@ namespace SmartGraph
                     }
                     else
                     {
-                        AddCorner(point1, point2, defaultNormal, defaultCalcNormal, normal1, width, false, corner,
+                        var upPosition = -defaultNormal - (normal1 + defaultCalcNormal).normalized;
+                        var downPosition = -defaultNormal + (normal1 + defaultCalcNormal).normalized;
+                        var clockwise = upPosition.magnitude >= downPosition.magnitude;
+                        AddCorner(point1, point2, defaultNormal, defaultCalcNormal, normal1, width, false, clockwise, corner,
                             vertex,
                             queVertexs);
                     }
@@ -102,11 +119,6 @@ namespace SmartGraph
                     {
                         case CornerType.Miter:
                         {
-                            var innerProduct1 = Vector2.Dot(defaultCalcNormal, normal1);
-                            var innerProduct2 = Vector2.Dot(defaultCalcNormal, normal2);
-
-                            var width1 = width / innerProduct1;
-                            var width2 = width / innerProduct2;
                             vertex.position = point1 - normal1 * width1;
                             vertex.uv0 = new Vector2(0, 0);
                             vertexs.Add(vertex);
@@ -127,41 +139,21 @@ namespace SmartGraph
                             break;
                         }
                         case CornerType.Round:
-                        {
-                            vertex.position = point1 - defaultCalcNormal * width;
-                            vertex.uv0 = new Vector2(0, 0);
-                            vertexs.Add(vertex);
-
-                            vertex.position = point2 - defaultCalcNormal * width;
-                            vertex.uv0 = new Vector2(1, 0);
-                            vertexs.Add(vertex);
-
-                            vertex.position = point2 + defaultCalcNormal * width;
-                            vertex.uv0 = new Vector2(1, 1);
-                            vertexs.Add(vertex);
-
-                            vertex.position = point1 + defaultCalcNormal * width;
-                            vertex.uv0 = new Vector2(0, 1);
-                            vertexs.Add(vertex);
-                            queVertexs.Add(vertexs.ToArray());
-                            vertexs.Clear();
-                            break;
-                        }
                         case CornerType.Bevel:
                         {
-                            vertex.position = point1 - defaultCalcNormal * width;
+                            vertex.position = isUp1 ? point1 - defaultCalcNormal * width : point1 - normal1 * width1;
                             vertex.uv0 = new Vector2(0, 0);
                             vertexs.Add(vertex);
 
-                            vertex.position = point2 - defaultCalcNormal * width;
+                            vertex.position = isUp2 ? point2 - normal2 * width2 : point2 - defaultCalcNormal * width;
                             vertex.uv0 = new Vector2(1, 0);
                             vertexs.Add(vertex);
 
-                            vertex.position = point2 + defaultCalcNormal * width;
+                            vertex.position = isUp2 ? point2 + defaultCalcNormal * width : point2 + normal2 * width2;
                             vertex.uv0 = new Vector2(1, 1);
                             vertexs.Add(vertex);
 
-                            vertex.position = point1 + defaultCalcNormal * width;
+                            vertex.position = isUp1 ? point1 + normal1 * width1 : point1 + defaultCalcNormal * width;
                             vertex.uv0 = new Vector2(0, 1);
                             vertexs.Add(vertex);
                             queVertexs.Add(vertexs.ToArray());
@@ -179,7 +171,10 @@ namespace SmartGraph
                     }
                     else
                     {
-                        AddCorner(point1, point2, defaultNormal, defaultCalcNormal, normal2, width, true, corner,
+                        var upPosition = -defaultNormal - (normal2 + defaultCalcNormal).normalized;
+                        var downPosition = -defaultNormal + (normal2 + defaultCalcNormal).normalized;
+                        var clockwise = upPosition.magnitude >= downPosition.magnitude;
+                        AddCorner(point1, point2, defaultNormal, defaultCalcNormal, normal2, width, true, clockwise, corner,
                             vertex,
                             queVertexs);
                     }
@@ -375,7 +370,7 @@ namespace SmartGraph
         /// <param name="queVertexs"></param>
         private static void AddCorner(Vector2 point1, Vector2 point2, Vector2 defaultNormal,
             Vector2 defaultCalcNormal, Vector2 normal,
-            float width, bool isEnd, CornerType corner, UIVertex vertex,
+            float width, bool isEnd,bool clockwise, CornerType corner, UIVertex vertex,
             ICollection<UIVertex[]> queVertexs)
         {
             var vertexs = new List<UIVertex>();
@@ -389,10 +384,11 @@ namespace SmartGraph
                     {
                         var upPosition = -defaultNormal - (normal + defaultCalcNormal).normalized;
                         var downPosition = -defaultNormal + (normal + defaultCalcNormal).normalized;
-
+                            
+                        var innerProduct = Vector2.Dot(defaultCalcNormal, normal);
                         if (upPosition.magnitude >= downPosition.magnitude)
                         {
-                            vertex.position = point2;
+                            vertex.position = point2 + normal * width / innerProduct;
                             vertex.uv0 = new Vector2(0, 0);
                             vertexs.Add(vertex);
 
@@ -412,8 +408,8 @@ namespace SmartGraph
                         }
                         else
                         {
-                            vertex.position = point2;
-                            vertex.uv0 = new Vector2(0, 0);
+                            vertex.position = point2 - normal * width / innerProduct;
+                                vertex.uv0 = new Vector2(0, 0);
                             vertexs.Add(vertex);
 
                             vertex.position = point2 + defaultCalcNormal * width;
@@ -442,7 +438,7 @@ namespace SmartGraph
 
                         if (upPosition.magnitude >= downPosition.magnitude)
                         {
-                            vertex.position = point2;
+                            vertex.position = point2 + normal * width / innerProduct;
                             vertex.uv0 = new Vector2(0, 0);
                             vertexs.Add(vertex);
 
@@ -454,7 +450,7 @@ namespace SmartGraph
                             vertex.uv0 = new Vector2(1, 1);
                             vertexs.Add(vertex);
 
-                            vertex.position = point2;
+                            vertex.position = point2 + normal * width / innerProduct;
                             vertex.uv0 = new Vector2(0, 1);
                             vertexs.Add(vertex);
                             queVertexs.Add(vertexs.ToArray());
@@ -462,7 +458,7 @@ namespace SmartGraph
                         }
                         else
                         {
-                            vertex.position = point2;
+                            vertex.position = point2 - normal * width / innerProduct; ;
                             vertex.uv0 = new Vector2(0, 0);
                             vertexs.Add(vertex);
 
@@ -474,7 +470,7 @@ namespace SmartGraph
                             vertex.uv0 = new Vector2(1, 1);
                             vertexs.Add(vertex);
 
-                            vertex.position = point2;
+                            vertex.position = point2 - normal * width / innerProduct; ;
                             vertex.uv0 = new Vector2(0, 1);
                             vertexs.Add(vertex);
 
@@ -497,9 +493,10 @@ namespace SmartGraph
                     {
                         var upPosition = defaultNormal - (normal + defaultCalcNormal).normalized;
                         var downPosition = defaultNormal + (normal + defaultCalcNormal).normalized;
+                        var innerProduct = Vector2.Dot(defaultCalcNormal, normal);
                         if (upPosition.magnitude >= downPosition.magnitude)
                         {
-                            vertex.position = point1;
+                            vertex.position = point1 + normal * width / innerProduct;
                             vertex.uv0 = new Vector2(0, 0);
                             vertexs.Add(vertex);
 
@@ -519,7 +516,7 @@ namespace SmartGraph
                         }
                         else
                         {
-                            vertex.position = point1;
+                            vertex.position = point1 - normal * width / innerProduct;
                             vertex.uv0 = new Vector2(0, 0);
                             vertexs.Add(vertex);
 
@@ -547,7 +544,7 @@ namespace SmartGraph
                         var downPosition = defaultNormal + (normal + defaultCalcNormal).normalized;
                         if (upPosition.magnitude >= downPosition.magnitude)
                         {
-                            vertex.position = point1;
+                            vertex.position = point1 + normal * width / innerProduct; ;
                             vertex.uv0 = new Vector2(0, 0);
                             vertexs.Add(vertex);
 
@@ -559,7 +556,7 @@ namespace SmartGraph
                             vertex.uv0 = new Vector2(1, 1);
                             vertexs.Add(vertex);
 
-                            vertex.position = point1;
+                            vertex.position = point1 + normal * width / innerProduct; ;
                             vertex.uv0 = new Vector2(0, 1);
                             vertexs.Add(vertex);
                             queVertexs.Add(vertexs.ToArray());
@@ -567,7 +564,7 @@ namespace SmartGraph
                         }
                         else
                         {
-                            vertex.position = point1;
+                            vertex.position = point1 - normal * width / innerProduct; ;
                             vertex.uv0 = new Vector2(0, 0);
                             vertexs.Add(vertex);
 
@@ -579,7 +576,7 @@ namespace SmartGraph
                             vertex.uv0 = new Vector2(1, 1);
                             vertexs.Add(vertex);
 
-                            vertex.position = point1;
+                            vertex.position = point1 - normal * width / innerProduct; ;
                             vertex.uv0 = new Vector2(0, 1);
                             vertexs.Add(vertex);
                             queVertexs.Add(vertexs.ToArray());

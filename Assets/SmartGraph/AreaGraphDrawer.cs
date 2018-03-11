@@ -7,8 +7,8 @@ namespace SmartGraph
     {
         [SerializeField] private DrawingType _drawingType;
         [SerializeField] private bool _isReverse;
-
-        private Vector2 _startPosition = Vector2.zero;
+        
+        private Vector2 _drawPoint;
 
         /// <summary>
         /// 描画方法
@@ -38,7 +38,7 @@ namespace SmartGraph
 
         protected override void OnUpdateViewPointPositions()
         {
-            _startPosition = IsReverse ? new Vector2(
+            _drawPoint = IsReverse ? new Vector2(
                     - IntervalStartPosition.x + RectTransform.rect.width,
                     - IntervalStartPosition.y + RectTransform.rect.height
                 ) : - IntervalStartPosition;
@@ -55,7 +55,7 @@ namespace SmartGraph
             lock (VertexHelperLock)
             {
                 SetViewUiVerticesGroup(
-                    CreateUiVertexsGroup(ViewPointPositions, color, Drawing, IsReverse, _startPosition)
+                    CreateUiVertexsGroup(ViewPointPositions, color, Drawing, IsReverse, _drawPoint)
                 );
             }
         }
